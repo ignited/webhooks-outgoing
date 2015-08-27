@@ -13,9 +13,9 @@ class WebhookJobTest extends m\Adapter\Phpunit\MockeryTestCase
 
     public function testJobFires()
     {
-        list($job, $request) = $this->createWebhookJob();
+        list($job, $request, $config, $requests, $service) = $this->createWebhookJob();
 
-        Webhooks::shouldReceive('fire')->once();
+        $service->shouldReceive('fire')->once();
 
         $job->shouldReceive('delete')->times(1);
 
@@ -24,7 +24,7 @@ class WebhookJobTest extends m\Adapter\Phpunit\MockeryTestCase
 
     public function testBackOffExponential()
     {
-        list($job, $request) = $this->createWebhookJob(['max_attempts'=>3]);
+        list($job, $request, $config, $requests, $service) = $this->createWebhookJob(['max_attempts'=>3]);
 
         $request->attempts = 0;
 
@@ -34,9 +34,9 @@ class WebhookJobTest extends m\Adapter\Phpunit\MockeryTestCase
         $exception->shouldReceive('getResponse')->andReturn($response = m::mock('Psr\Http\Message\ResponseInterface'));
         $response->shouldReceive('getStatusCode')->andReturn(404);
 
-        Webhooks::shouldReceive('update')->once()->andReturn(true);
+        $requests->shouldReceive('update')->once()->andReturn(true);
 
-        Webhooks::shouldReceive('fire')->once()->andThrow($exception);
+        $service->shouldReceive('fire')->once()->andThrow($exception);
 
         $seconds = (2 ^ $request->attempts+1);
 
@@ -47,7 +47,7 @@ class WebhookJobTest extends m\Adapter\Phpunit\MockeryTestCase
 
     public function testJobFailsOnMaxAttempts()
     {
-        list($job, $request) = $this->createWebhookJob(['max_attempts'=>3]);
+        list($job, $request, $config, $requests, $service) = $this->createWebhookJob(['max_attempts'=>3]);
 
         $request->attempts = 3;
 
@@ -57,9 +57,9 @@ class WebhookJobTest extends m\Adapter\Phpunit\MockeryTestCase
         $exception->shouldReceive('getResponse')->andReturn($response = m::mock('Psr\Http\Message\ResponseInterface'));
         $response->shouldReceive('getStatusCode')->andReturn(404);
 
-        Webhooks::shouldReceive('update')->once()->andReturn(true);
+        $requests->shouldReceive('update')->once()->andReturn(true);
 
-        Webhooks::shouldReceive('fire')->once()->andThrow($exception);
+        $service->shouldReceive('fire')->once()->andThrow($exception);
 
         $job->shouldReceive('release')->never();
         $job->shouldReceive('delete')->once();
@@ -71,9 +71,11 @@ class WebhookJobTest extends m\Adapter\Phpunit\MockeryTestCase
     {
         $job = m::mock('Ignited\Webhooks\Outgoing\Jobs\WebhookJob', [
             $request     = m::mock('Ignited\Webhooks\Outgoing\Requests\EloquentRequest'),
-            $config
+            $config,
+            $requests    = m::mock('Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface'),
+            $service     = m::mock('Ignited\Webhooks\Outgoing\Services\RequestService'),
         ])->makePartial();
 
-        return [$job, $request];
+        return [$job, $request, $config, $requests, $service];
     }
 }

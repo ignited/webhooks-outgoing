@@ -1,9 +1,10 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Jobs;
 
-use Ignited\Webhooks\Outgoing\Facades\Webhooks;
 use Ignited\Webhooks\Outgoing\Models\Request;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
+use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
+use Ignited\Webhooks\Outgoing\Services\RequestServiceInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -16,18 +17,24 @@ class WebhookJob implements SelfHandling, ShouldQueue
 
     protected $request;
     protected $config;
+    protected $requests;
+    protected $service;
 
     public function __construct(RequestInterface $request,
-                                $config)
+                                $config,
+                                RequestRepositoryInterface $requests,
+                                RequestServiceInterface $service)
     {
         $this->request = $request;
         $this->config = $config;
+        $this->requests = $requests;
+        $this->service = $service;
     }
 
     public function handle()
     {
         try {
-            $response = Webhooks::fire($this->request);
+            $response = $this->service->fire($this->request);
 
             $this->handleSuccess();
         }
@@ -52,7 +59,7 @@ class WebhookJob implements SelfHandling, ShouldQueue
 
         $this->request->attempts += 1;
 
-        Webhooks::update($this->request);
+        $this->requests->update($this->request);
 
         if($this->request->attempts < $this->config['max_attempts'])
         {

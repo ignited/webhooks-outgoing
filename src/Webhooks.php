@@ -6,6 +6,8 @@ use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Models\Request;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
 use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
+use Ignited\Webhooks\Outgoing\Services\DispatchInterface;
+use Ignited\Webhooks\Outgoing\Services\RequestService;
 use Illuminate\Contracts\Bus\Dispatcher;
 
 /**
@@ -15,20 +17,15 @@ use Illuminate\Contracts\Bus\Dispatcher;
 class Webhooks
 {
     protected $requests;
-    protected $client;
-    protected $dispatcher;
+    protected $service;
     protected $config;
 
     public function __construct(RequestRepositoryInterface $requests,
-                                ClientInterface $client,
-                                Dispatcher $dispatcher,
-                                $config
+                                RequestService $service
     )
     {
         $this->requests = $requests;
-        $this->client = $client;
-        $this->dispatcher = $dispatcher;
-        $this->config = $config;
+        $this->service = $service;
     }
 
     public function generate($url, $body, $method='post')
@@ -57,25 +54,11 @@ class Webhooks
 
     public function dispatch(RequestInterface $request)
     {
-        if($this->requests->save($request))
-        {
-            $job = (new WebhookJob($request, $this->config));
-
-            $this->dispatcher->dispatch($job);
-        }
+        return $this->service->dispatch($request);
     }
 
     public function fire(RequestInterface $request)
     {
-        $request = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
-
-        $response = $this->send($request);
-
-        return $response;
-    }
-
-    public function send(\Psr\Http\Message\RequestInterface $request)
-    {
-        return $this->client->send($request);
+        return $this->service->fire($request);
     }
 }
