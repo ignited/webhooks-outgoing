@@ -6,7 +6,7 @@ use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Models\Request;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
 use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
-use Laravel\Lumen\Routing\DispatchesJobs;
+use Illuminate\Contracts\Bus\Dispatcher;
 
 /**
  * Class Webhooks
@@ -14,21 +14,26 @@ use Laravel\Lumen\Routing\DispatchesJobs;
  */
 class Webhooks
 {
-    use DispatchesJobs;
-
     protected $requests;
     protected $client;
+    protected $dispatcher;
+    protected $config;
 
     public function __construct(RequestRepositoryInterface $requests,
-                                ClientInterface $client)
+                                ClientInterface $client,
+                                Dispatcher $dispatcher,
+                                $config
+    )
     {
         $this->requests = $requests;
         $this->client = $client;
+        $this->dispatcher = $dispatcher;
+        $this->config = $config;
     }
 
     public function generate($url, $body, $method='post')
     {
-        $request = $this->create(compact(['url', 'body', 'method']));
+        $request = $this->requests->create(compact(['url', 'body', 'method']));
 
         return $request;
     }
@@ -40,13 +45,23 @@ class Webhooks
         return $request;
     }
 
+    public function delete(RequestInterface $request)
+    {
+        return $this->requests->delete($request);
+    }
+
+    public function update(RequestInterface $request)
+    {
+        return $this->requests->save($request);
+    }
+
     public function dispatch(RequestInterface $request)
     {
         if($this->requests->save($request))
         {
-            $job = (new WebhookJob($request));
+            $job = (new WebhookJob($request, $this->config));
 
-            app('Illuminate\Contracts\Bus\Dispatcher')->dispatch($job);
+            $this->dispatcher->dispatch($job);
         }
     }
 

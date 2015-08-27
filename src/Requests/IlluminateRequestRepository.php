@@ -30,6 +30,11 @@ class IlluminateRequestRepository implements RequestRepositoryInterface
         return $request;
     }
 
+    public function delete($request)
+    {
+        return $request->delete();
+    }
+
     public function save($request)
     {
         return $request->save();

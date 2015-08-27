@@ -8,6 +8,8 @@ return [
 
 
     // Here you can define the queue name to use for webhook processing
-    'queue_name' => env('WEBHOOKS_QUEUE_NAME', 'default')
+    'queue_name' => env('WEBHOOKS_QUEUE_NAME', 'default'),
+
+    'max_attempts' => env('WEBHOOKS_MAX_ATTEMPTS', 19),
 
 ];

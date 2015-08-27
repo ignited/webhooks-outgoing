@@ -15,21 +15,59 @@ class WebhookJob implements SelfHandling, ShouldQueue
     use InteractsWithQueue, Queueable, SerializesModels;
 
     protected $request;
+    protected $config;
 
-    public function __construct(RequestInterface $request)
+    public function __construct(RequestInterface $request,
+                                $config)
     {
         $this->request = $request;
+        $this->config = $config;
     }
 
     public function handle()
     {
-        $response = Webhooks::fire($this->request);
+        try {
+            $response = Webhooks::fire($this->request);
 
-        // Logic here to handle the response...
+            $this->handleSuccess();
+        }
+        catch(\GuzzleHttp\Exception\RequestException $e)
+        {
+            $this->handleError($e);
+        }
+    }
 
-        // Implement Backoff Strategy...
+    public function handleSuccess()
+    {
+        return $this->delete();
+    }
 
-        // But for now just consider everything went to plan... :)
-        $this->delete();
+    public function handleError(\GuzzleHttp\Exception\RequestException $e)
+    {
+        if ($e->hasResponse()) {
+            $response = $e->getResponse();
+
+            $code = $response->getStatusCode();
+        }
+        else
+        {
+            \Log::error('Guzzle HTTP '.$e->getMessage());
+        }
+
+        if($this->request->attempts < $this->config['max_attempts'])
+        {
+            $this->request->attempts += 1;
+
+            Webhooks::update($this->request);
+
+            $seconds = (2 ^ $this->request->attempts);
+
+            $this->release($seconds);
+        }
+
+        if($this->request->attempts >= $this->config['max_attempts'])
+        {
+            $this->delete();
+        }
     }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Provider;
 
+use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Requests\IlluminateRequestRepository;
 use Ignited\Webhooks\Outgoing\Webhooks;
 use Illuminate\Support\ServiceProvider;
@@ -19,7 +20,7 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
 
         $this->app->bind('webhooks', function($app)
         {
-            return new Webhooks($app['webhooks.requests'], new Client());
+            return new Webhooks($app['webhooks.requests'], new Client(), $app['Illuminate\Contracts\Bus\Dispatcher'], $app['config']['webhooks-outgoing']);
         });
     }
 
