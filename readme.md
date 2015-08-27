@@ -24,6 +24,6 @@ Webhooks::dispatch($request);
 `Note:` you will need to run an instance of `php artisan queue:listen` to ensure queues are delivered.
 
 Todo List:
-- [ ] Define failed attempts
-- [ ] Backoff
-- [ ] Exception handling for Synchronous Webhooks
+- [x] Define failed attempts
+- [x] Backoff
+- [x] Exception handling for Synchronous Webhooks
