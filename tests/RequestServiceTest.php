@@ -47,9 +47,6 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 
         $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
 
-        $response = m::mock('Psr\Http\Message\ResponseInterface');
-        $response->shouldReceive('getStatusCode')->andReturn('200');
-
         $requests->shouldReceive('save')->with($request)->andReturn(true);
 
         $eventDispatcher->shouldReceive('fire')->times(2);
@@ -74,9 +71,6 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
         list($service, $requests, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks($client);
 
         $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
-
-        $response = m::mock('Psr\Http\Message\ResponseInterface');
-        $response->shouldReceive('getStatusCode')->andReturn(400);
 
         $requests->shouldReceive('save')->with($request)->andReturn(true);
 
