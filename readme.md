@@ -32,3 +32,4 @@ Todo (feel free to contribute):
 - [ ] Functional testing in Laravel (Package was built for Lumen so it's only been testing with intergration of Lumen)
 - [ ] Retry should be allowed until it has failed (i.e. attempts >= max_number_attempts)
 - [ ] More event handling etc. `retrying`, `failing`, `attempting`
+- [ ] Ability to customise queue_name and queue_connection.
