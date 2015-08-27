@@ -28,8 +28,6 @@ class WebhookJob implements SelfHandling, ShouldQueue
     {
         try {
             $service->fire($this->request);
-
-            return $this->delete();
         }
         catch(\GuzzleHttp\Exception\RequestException $e)
         {
@@ -37,13 +35,10 @@ class WebhookJob implements SelfHandling, ShouldQueue
             {
                 $seconds = $service->getDelayInSeconds($this->request);
 
-                $this->release($seconds);
-            }
-
-            if($this->request->attempts >= $this->config['max_attempts'])
-            {
-                $this->delete();
+                return $this->release($seconds);
             }
         }
+
+        return $this->delete();
     }
 }
