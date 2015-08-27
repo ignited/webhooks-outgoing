@@ -9,7 +9,7 @@ php:
 sudo: false
 
 install:
-  - travis_retry compoven ser install --no-interaction --prefer-source
+  - travis_retry composer install --no-interaction --prefer-source
 
 script:
   - vendor/bin/phpunit
