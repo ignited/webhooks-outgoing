@@ -17,11 +17,6 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
 
     public function register()
     {
-        $this->app->bind('webhooks', function($app)
-        {
-            return new Webhooks($app['webhooks.requests'], $app['webhooks.service']);
-        });
-
         $this->app->singleton('webhooks.service', function ($app) {
             return new RequestService($app['webhooks.requests'], new Client(), $app['Illuminate\Contracts\Bus\Dispatcher'], $app['config']['webhooks-outgoing']);
         });
@@ -34,9 +29,15 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
             return new IlluminateRequestRepository($model);
         });
 
-        $this->app->alias('webhooks.requests', 'Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface');
+        $this->app->alias('Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface', 'webhooks.requests');
 
         $this->app->alias('Ignited\Webhooks\Outgoing\Services\RequestServiceInterface', 'Ignited\Webhooks\Outgoing\Services\RequestService');
+
+        $this->app->bind('webhooks', function($app)
+        {
+            return new Webhooks($app['webhooks.requests'], $app['webhooks.service']);
+        });
+
     }
 
     protected function setupConfig()
