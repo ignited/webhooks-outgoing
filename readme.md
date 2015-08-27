@@ -1,5 +1,10 @@
 # PACKAGE STILL IN DEVELOPMENT
 ## Laravel Webhooks (Outgoing)
+
+[![Build Status](https://travis-ci.org/ignited/webhooks-outgoing.svg?branch=master)](https://travis-ci.org/ignited/webhooks-outgoing)
+[![Total Downloads](https://poser.pugx.org/ignited/webhooks-outgoing/d/total.svg)](https://packagist.org/packages/rydurham/sentinel)
+
+
 Simple `Queue` driven webhook interface. Just send your webhook url, body (and method) and let the library take care of the rest. Supports asynchronous (backed by Laravel queues) to ensure message delivery.
 
 ### Synchronous
