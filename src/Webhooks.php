@@ -1,9 +1,11 @@
 <?php
 namespace Ignited\Webhooks\Outgoing;
 
-use \GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Models\Request;
+use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
+use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
 use Laravel\Lumen\Routing\DispatchesJobs;
 
 /**
@@ -14,40 +16,51 @@ class Webhooks
 {
     use DispatchesJobs;
 
-    /**
-     * @param $url
-     * @param $body
-     * @param string $method
-     * @return Request
-     */
+    protected $requests;
+    protected $client;
+
+    public function __construct(RequestRepositoryInterface $requests,
+                                ClientInterface $client)
+    {
+        $this->requests = $requests;
+        $this->client = $client;
+    }
+
     public function generate($url, $body, $method='post')
     {
-        $request = new Request();
-
-        $request->setAttribute('url', $url);
-        $request->setAttribute('body', $body);
-        $request->setAttribute('method', $method);
+        $request = $this->create(compact(['url', 'body', 'method']));
 
         return $request;
     }
 
-    public function dispatch(Request $request)
+    public function create($data)
     {
-        $request->save();
+        $request = $this->requests->create($data);
 
-        $job = (new WebhookJob($request));
-
-        app('Illuminate\Contracts\Bus\Dispatcher')->dispatch($job);
+        return $request;
     }
 
-    public function fire(Request $request)
+    public function dispatch(RequestInterface $request)
     {
-        $client = new Client();
+        if($this->requests->save($request))
+        {
+            $job = (new WebhookJob($request));
 
-        $response = $client->{$request->getAttribute('method')}($request->getAttribute('url'), [
-            'json'=> json_encode($request->getAttribute('body'))
-        ]);
+            app('Illuminate\Contracts\Bus\Dispatcher')->dispatch($job);
+        }
+    }
+
+    public function fire(RequestInterface $request)
+    {
+        $request = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
+
+        $response = $this->send($request);
 
         return $response;
+    }
+
+    public function send(\Psr\Http\Message\RequestInterface $request)
+    {
+        return $this->client->send($request);
     }
 }

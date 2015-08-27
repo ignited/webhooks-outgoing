@@ -3,6 +3,7 @@ namespace Ignited\Webhooks\Outgoing\Jobs;
 
 use Ignited\Webhooks\Outgoing\Facades\Webhooks;
 use Ignited\Webhooks\Outgoing\Models\Request;
+use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -15,7 +16,7 @@ class WebhookJob implements SelfHandling, ShouldQueue
 
     protected $request;
 
-    public function __construct(Request $request)
+    public function __construct(RequestInterface $request)
     {
         $this->request = $request;
     }

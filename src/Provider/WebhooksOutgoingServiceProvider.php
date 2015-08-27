@@ -1,17 +1,13 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Provider;
 
+use Ignited\Webhooks\Outgoing\Requests\IlluminateRequestRepository;
 use Ignited\Webhooks\Outgoing\Webhooks;
 use Illuminate\Support\ServiceProvider;
+use \GuzzleHttp\Client;
 
 class WebhooksOutgoingServiceProvider extends ServiceProvider
 {
-    protected $listen = [
-        'App\Events\SomeEvent' => [
-            'App\Listeners\EventListener',
-        ],
-    ];
-
     public function boot()
     {
         $this->setupConfig();
@@ -19,9 +15,22 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
 
     public function register()
     {
+        $this->registerRequests();
+
         $this->app->bind('webhooks', function($app)
         {
-            return new Webhooks();
+            return new Webhooks($app['webhooks.requests'], new Client());
+        });
+    }
+
+    public function registerRequests()
+    {
+        $this->app->singleton('webhooks.requests', function ($app) {
+            $config = $this->app['config']['webhooks-outgoing'];
+
+            $model = array_get($config, 'requests.model');
+
+            return new IlluminateRequestRepository($model);
         });
     }
 
