@@ -47,19 +47,15 @@ class WebhookJob implements SelfHandling, ShouldQueue
         if ($e->hasResponse()) {
             $response = $e->getResponse();
 
-            $code = $response->getStatusCode();
+            $this->request->response_code = $response->getStatusCode();
         }
-        else
-        {
-            \Log::error('Guzzle HTTP '.$e->getMessage());
-        }
+
+        $this->request->attempts += 1;
+
+        Webhooks::update($this->request);
 
         if($this->request->attempts < $this->config['max_attempts'])
         {
-            $this->request->attempts += 1;
-
-            Webhooks::update($this->request);
-
             $seconds = (2 ^ $this->request->attempts);
 
             $this->release($seconds);
