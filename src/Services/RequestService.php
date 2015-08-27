@@ -7,12 +7,6 @@ use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Mockery as m;
 
-/**
- * Created by PhpStorm.
- * User: alex
- * Date: 27/08/15
- * Time: 1:46 PM
- */
 class RequestService implements RequestServiceInterface
 {
     public function __construct(RequestRepositoryInterface $requests,
@@ -39,11 +33,38 @@ class RequestService implements RequestServiceInterface
 
     public function fire(RequestInterface $request)
     {
-        $request = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
+        $request->attempts += 1;
 
-        $response = $this->send($request);
+        $request->last_attempt_at = $request->freshTimestamp();
 
-        return $response;
+        try {
+            $outRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
+
+            $response = $this->send($outRequest);
+
+            $request->response_code = $response->getStatusCode();
+
+            $this->requests->save($request);
+
+            return $response;
+        }
+        catch(\GuzzleHttp\Exception\RequestException $e)
+        {
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+
+                $request->response_code = $response->getStatusCode();
+            }
+
+            $this->requests->save($request);
+
+            throw $e;
+        }
+    }
+
+    public function getDelayInSeconds($request)
+    {
+        return (2 ^ $request->attempts);
     }
 
     public function send(\Psr\Http\Message\RequestInterface $request)

@@ -1,7 +1,6 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Provider;
 
-use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Requests\IlluminateRequestRepository;
 use Ignited\Webhooks\Outgoing\Services\RequestService;
 use Ignited\Webhooks\Outgoing\Webhooks;
@@ -17,10 +16,6 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
 
     public function register()
     {
-        $this->app->singleton('webhooks.service', function ($app) {
-            return new RequestService($app['webhooks.requests'], new Client(), $app['Illuminate\Contracts\Bus\Dispatcher'], $app['config']['webhooks-outgoing']);
-        });
-
         $this->app->bind('Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface', function ($app) {
             $config = $this->app['config']['webhooks-outgoing'];
 
@@ -29,15 +24,14 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
             return new IlluminateRequestRepository($model);
         });
 
-        $this->app->alias('Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface', 'webhooks.requests');
-
-        $this->app->alias('Ignited\Webhooks\Outgoing\Services\RequestServiceInterface', 'Ignited\Webhooks\Outgoing\Services\RequestService');
+        $this->app->bind('Ignited\Webhooks\Outgoing\Services\RequestServiceInterface', function ($app) {
+            return new RequestService($app['Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface'], new Client(), $app['Illuminate\Contracts\Bus\Dispatcher'], $app['config']['webhooks-outgoing']);
+        });
 
         $this->app->bind('webhooks', function($app)
         {
-            return new Webhooks($app['webhooks.requests'], $app['webhooks.service']);
+            return new Webhooks($app['Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface'], $app['Ignited\Webhooks\Outgoing\Services\RequestServiceInterface']);
         });
-
     }
 
     protected function setupConfig()

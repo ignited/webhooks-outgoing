@@ -3,7 +3,6 @@ namespace Ignited\Webhooks\Outgoing\Jobs;
 
 use Ignited\Webhooks\Outgoing\Models\Request;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
-use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
 use Ignited\Webhooks\Outgoing\Services\RequestServiceInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -17,60 +16,34 @@ class WebhookJob implements SelfHandling, ShouldQueue
 
     protected $request;
     protected $config;
-    protected $requests;
-    protected $service;
 
     public function __construct(RequestInterface $request,
-                                $config,
-                                RequestRepositoryInterface $requests,
-                                RequestServiceInterface $service)
+                                $config)
     {
         $this->request = $request;
         $this->config = $config;
-        $this->requests = $requests;
-        $this->service = $service;
     }
 
-    public function handle()
+    public function handle(RequestServiceInterface $service)
     {
         try {
-            $response = $this->service->fire($this->request);
+            $service->fire($this->request);
 
-            $this->handleSuccess();
+            return $this->delete();
         }
         catch(\GuzzleHttp\Exception\RequestException $e)
         {
-            $this->handleError($e);
-        }
-    }
+            if($this->request->attempts < $this->config['max_attempts'])
+            {
+                $seconds = $service->getDelayInSeconds($this->request);
 
-    public function handleSuccess()
-    {
-        return $this->delete();
-    }
+                $this->release($seconds);
+            }
 
-    public function handleError(\GuzzleHttp\Exception\RequestException $e)
-    {
-        if ($e->hasResponse()) {
-            $response = $e->getResponse();
-
-            $this->request->response_code = $response->getStatusCode();
-        }
-
-        $this->request->attempts += 1;
-
-        $this->requests->update($this->request);
-
-        if($this->request->attempts < $this->config['max_attempts'])
-        {
-            $seconds = (2 ^ $this->request->attempts);
-
-            $this->release($seconds);
-        }
-
-        if($this->request->attempts >= $this->config['max_attempts'])
-        {
-            $this->delete();
+            if($this->request->attempts >= $this->config['max_attempts'])
+            {
+                $this->delete();
+            }
         }
     }
 }

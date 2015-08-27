@@ -1,17 +1,13 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Tests;
 
+use Ignited\Webhooks\Outgoing\Requests\EloquentRequest;
+use Ignited\Webhooks\Outgoing\Services\RequestFailedException;
 use Ignited\Webhooks\Outgoing\Services\RequestService;
-use Ignited\Webhooks\Outgoing\Webhooks;
 use Mockery as m;
 
 class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 {
-    public function setUp()
-    {
-        m::mock('Illuminate\Database\Eloquent\Model');
-    }
-
     public function testDispatch()
     {
         list($service, $requests, $client, $dispatcher, $service, $config) = $this->createWebhooks(['max_attempts'=>3]);
@@ -23,17 +19,41 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
         $service->dispatch(m::mock('Ignited\Webhooks\Outgoing\Requests\EloquentRequest'));
     }
 
-    public function testFire()
+    public function testSuccessfulFire()
     {
         list($service, $requests, $client, $dispatcher, $service, $config) = $this->createWebhooks();
 
-        $request = m::mock('Ignited\Webhooks\Outgoing\Requests\EloquentRequest');
+        $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
 
-        $request->shouldReceive('getUrl')->andReturn('http://test.com');
-        $request->shouldReceive('getMethod')->andReturn('POST');
-        $request->shouldReceive('getBody')->andReturn('test');
+        $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response->shouldReceive('getStatusCode')->andReturn('200');
 
-        $client->shouldReceive('send')->once()->andReturn(true);
+        $requests->shouldReceive('save')->with($request)->andReturn(true);
+
+        $client->shouldReceive('send')->once()->andReturn($response);
+
+        $service->fire($request);
+    }
+
+    /**
+     * @expectedException     GuzzleHttp\Exception\RequestException
+     * @expectedExceptionMessage Could Not Contact Server
+     * @expectedExceptionCode 400
+     */
+    public function testUnsuccessfulFireShouldThrowException()
+    {
+        list($service, $requests, $client, $dispatcher, $service, $config) = $this->createWebhooks();
+
+        $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
+
+        $response = m::mock('Psr\Http\Message\ResponseInterface');
+        $response->shouldReceive('getStatusCode')->andReturn(400);
+
+        $exception = new \GuzzleHttp\Exception\RequestException('Could Not Contact Server', m::mock('Psr\Http\Message\RequestInterface'), $response);
+
+        $client->shouldReceive('send')->once()->andThrow($exception);
+
+        $requests->shouldReceive('save')->with($request)->andReturn(true);
 
         $service->fire($request);
     }
