@@ -37,6 +37,24 @@ class WebhooksTest extends m\Adapter\Phpunit\MockeryTestCase
         $webhooks->create($data);
     }
 
+    public function testUpdate()
+    {
+        list($webhooks, $requests, $service) = $this->createWebhooks();
+
+        $requests->shouldReceive('save')->once()->andReturn(true);
+
+        $webhooks->update(m::mock('Ignited\Webhooks\Outgoing\Requests\EloquentRequest'));
+    }
+
+    public function testDelete()
+    {
+        list($webhooks, $requests, $service) = $this->createWebhooks();
+
+        $requests->shouldReceive('delete')->once()->andReturn(true);
+
+        $webhooks->delete(m::mock('Ignited\Webhooks\Outgoing\Requests\EloquentRequest'));
+    }
+
     public function testDispatch()
     {
         list($webhooks, $requests, $service) = $this->createWebhooks(['max_attempts'=>3]);
