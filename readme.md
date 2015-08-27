@@ -14,7 +14,7 @@ $request = Webhooks::generate($url, $body, $method);
 $response = Webhooks::fire($request);
 ````
 
-### Asynchronous (easy to use)
+### Asynchronous
 Requires queues - but implements backoff, x failed attempts, and retry etc.
 ```php
 $request = Webhooks::generate($url, $body, $method);
@@ -22,8 +22,3 @@ Webhooks::dispatch($request);
 ````
 
 `Note:` you will need to run an instance of `php artisan queue:listen` to ensure queues are delivered.
-
-Todo List:
-- [x] Define failed attempts
-- [x] Backoff
-- [x] Exception handling for Synchronous Webhooks
