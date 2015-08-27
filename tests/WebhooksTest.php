@@ -37,6 +37,15 @@ class WebhooksTest extends m\Adapter\Phpunit\MockeryTestCase
         $webhooks->create($data);
     }
 
+    public function testReset()
+    {
+        list($webhooks, $requests, $service) = $this->createWebhooks();
+
+        $service->shouldReceive('resetAttempts')->once()->andReturn(true);
+
+        $webhooks->reset(m::mock('Ignited\Webhooks\Outgoing\Requests\EloquentRequest'));
+    }
+
     public function testUpdate()
     {
         list($webhooks, $requests, $service) = $this->createWebhooks();

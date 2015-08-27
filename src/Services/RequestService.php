@@ -75,6 +75,16 @@ class RequestService implements RequestServiceInterface
         }
     }
 
+    public function resetAttempts(RequestInterface $request)
+    {
+        $request->attempts = 0;
+        $request->response_code = 0;
+
+        $this->requests->save($request);
+
+        return true;
+    }
+
     public function getDelayInSeconds($request)
     {
         return (int) pow(2, $request->attempts);

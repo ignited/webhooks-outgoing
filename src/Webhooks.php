@@ -42,6 +42,11 @@ class Webhooks
         return $request;
     }
 
+    public function reset(RequestInterface $request)
+    {
+        return $this->service->resetAttempts($request);
+    }
+
     public function delete(RequestInterface $request)
     {
         return $this->requests->delete($request);
