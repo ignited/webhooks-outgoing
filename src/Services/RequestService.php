@@ -77,7 +77,7 @@ class RequestService implements RequestServiceInterface
 
     public function getDelayInSeconds($request)
     {
-        return (2 ^ $request->attempts);
+        return (int) pow(2, $request->attempts);
     }
 
     public function send(\Psr\Http\Message\RequestInterface $request)
