@@ -1,6 +1,9 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Services;
 use GuzzleHttp\ClientInterface;
+use Ignited\Webhooks\Outgoing\Events\WebhookEncounteredGuzzleError;
+use Ignited\Webhooks\Outgoing\Events\WebhookIsSending;
+use Ignited\Webhooks\Outgoing\Events\WebhookWasSent;
 use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
 use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
@@ -44,7 +47,7 @@ class RequestService implements RequestServiceInterface
         try {
             $httpRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
 
-            $this->eventDispatcher->fire('webhooks.sending', ['request'=>$request, 'httpRequest'=>$httpRequest]);
+            $this->eventDispatcher->fire(new WebhookIsSending($request));
 
             $response = $this->send($httpRequest);
 
@@ -52,13 +55,13 @@ class RequestService implements RequestServiceInterface
 
             $this->requests->save($request);
 
-            $this->eventDispatcher->fire('webhooks.sent', $request);
+            $this->eventDispatcher->fire(new WebhookWasSent($request, $response));
 
             return $response;
         }
         catch(\GuzzleHttp\Exception\RequestException $e)
         {
-            $this->eventDispatcher->fire('webhooks.error', ['request'=>$request, 'error'=>$e->getMessage(), 'httpResponse'=>$e->getResponse()]);
+            $this->eventDispatcher->fire(new WebhookEncounteredGuzzleError($request, $e));
 
             if ($e->hasResponse()) {
                 $response = $e->getResponse();
