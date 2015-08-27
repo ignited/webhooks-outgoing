@@ -4,19 +4,24 @@ use GuzzleHttp\ClientInterface;
 use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
 use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
+use Ignited\Webhooks\Outgoing\Traits\EventTrait;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Events\Dispatcher as EventDispatcher;
 
 class RequestService implements RequestServiceInterface
 {
+
     public function __construct(RequestRepositoryInterface $requests,
                                 ClientInterface $client,
                                 Dispatcher $dispatcher,
+                                EventDispatcher $eventDispatcher,
                                 $config
     )
     {
         $this->requests = $requests;
         $this->client = $client;
         $this->dispatcher = $dispatcher;
+        $this->eventDispatcher = $eventDispatcher;
         $this->config = $config;
     }
 
@@ -37,18 +42,24 @@ class RequestService implements RequestServiceInterface
         $request->last_attempt_at = $request->freshTimestamp();
 
         try {
-            $outRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
+            $httpRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
 
-            $response = $this->send($outRequest);
+            $this->eventDispatcher->fire('webhooks.sending', ['request'=>$request, 'httpRequest'=>$httpRequest]);
+
+            $response = $this->send($httpRequest);
 
             $request->response_code = $response->getStatusCode();
 
             $this->requests->save($request);
 
+            $this->eventDispatcher->fire('webhooks.sent', $request);
+
             return $response;
         }
         catch(\GuzzleHttp\Exception\RequestException $e)
         {
+            $this->eventDispatcher->fire('webhooks.error', ['request'=>$request, 'error'=>$e->getMessage(), 'httpResponse'=>$e->getResponse()]);
+
             if ($e->hasResponse()) {
                 $response = $e->getResponse();
 

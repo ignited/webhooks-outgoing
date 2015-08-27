@@ -25,7 +25,7 @@ class WebhooksOutgoingServiceProvider extends ServiceProvider
         });
 
         $this->app->bind('Ignited\Webhooks\Outgoing\Services\RequestServiceInterface', function ($app) {
-            return new RequestService($app['Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface'], new Client(), $app['Illuminate\Contracts\Bus\Dispatcher'], $app['config']['webhooks-outgoing']);
+            return new RequestService($app['Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface'], new Client(), $app['Illuminate\Contracts\Bus\Dispatcher'], $app['Illuminate\Events\Dispatcher'], $app['config']['webhooks-outgoing']);
         });
 
         $this->app->bind('webhooks', function($app)

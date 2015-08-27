@@ -10,7 +10,7 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 {
     public function testDispatch()
     {
-        list($service, $requests, $client, $dispatcher, $service, $config) = $this->createWebhooks(['max_attempts'=>3]);
+        list($service, $requests, $client, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks(['max_attempts'=>3]);
 
         $requests->shouldReceive('save')->once()->andReturn(true);
 
@@ -21,7 +21,7 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 
     public function testSuccessfulFire()
     {
-        list($service, $requests, $client, $dispatcher, $service, $config) = $this->createWebhooks();
+        list($service, $requests, $client, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks();
 
         $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
 
@@ -31,6 +31,8 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
         $requests->shouldReceive('save')->with($request)->andReturn(true);
 
         $client->shouldReceive('send')->once()->andReturn($response);
+
+        $eventDispatcher->shouldReceive('fire')->times(2);
 
         $service->fire($request);
     }
@@ -42,7 +44,7 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
      */
     public function testUnsuccessfulFireShouldThrowException()
     {
-        list($service, $requests, $client, $dispatcher, $service, $config) = $this->createWebhooks();
+        list($service, $requests, $client, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks();
 
         $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
 
@@ -55,18 +57,21 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 
         $requests->shouldReceive('save')->with($request)->andReturn(true);
 
+        $eventDispatcher->shouldReceive('fire')->times(2);
+
         $service->fire($request);
     }
 
     protected function createWebhooks($config=[])
     {
         $service = new RequestService(
-            $requests      = m::mock('Ignited\Webhooks\Outgoing\Requests\IlluminateRequestRepository'),
-            $client        = m::mock('GuzzleHttp\Client'),
-            $dispatcher    = m::mock('Illuminate\Contracts\Bus\Dispatcher'),
+            $requests           = m::mock('Ignited\Webhooks\Outgoing\Requests\IlluminateRequestRepository'),
+            $client             = m::mock('GuzzleHttp\Client'),
+            $dispatcher         = m::mock('Illuminate\Contracts\Bus\Dispatcher'),
+            $eventDispatcher    = m::mock('Illuminate\Events\Dispatcher'),
             $config
         );
 
-        return [$service, $requests, $client, $dispatcher, $service, $config];
+        return [$service, $requests, $client, $dispatcher, $eventDispatcher, $config];
     }
 }
