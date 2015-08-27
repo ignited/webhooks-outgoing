@@ -1,6 +1,10 @@
 <?php
 namespace Ignited\Webhooks\Outgoing\Tests;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use Ignited\Webhooks\Outgoing\Requests\EloquentRequest;
 use Ignited\Webhooks\Outgoing\Services\RequestFailedException;
 use Ignited\Webhooks\Outgoing\Services\RequestService;
@@ -10,7 +14,7 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 {
     public function testDispatch()
     {
-        list($service, $requests, $client, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks(['max_attempts'=>3]);
+        list($service, $requests, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks(m::mock('GuzzleHttp\Client'), ['max_attempts'=>3]);
 
         $requests->shouldReceive('save')->once()->andReturn(true);
 
@@ -21,7 +25,14 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 
     public function testSuccessfulFire()
     {
-        list($service, $requests, $client, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks();
+        $mock = new MockHandler([
+            new Response(204)
+        ]);
+
+        $handler = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handler]);
+
+        list($service, $requests, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks($client);
 
         $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
 
@@ -30,8 +41,6 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 
         $requests->shouldReceive('save')->with($request)->andReturn(true);
 
-        $client->shouldReceive('send')->once()->andReturn($response);
-
         $eventDispatcher->shouldReceive('fire')->times(2);
 
         $service->fire($request);
@@ -39,21 +48,24 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
 
     /**
      * @expectedException     GuzzleHttp\Exception\RequestException
-     * @expectedExceptionMessage Could Not Contact Server
+     * @expectedExceptionMessage Client error: 400
      * @expectedExceptionCode 400
      */
     public function testUnsuccessfulFireShouldThrowException()
     {
-        list($service, $requests, $client, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks();
+        $mock = new MockHandler([
+            new Response(400)
+        ]);
+
+        $handler = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handler]);
+
+        list($service, $requests, $dispatcher, $eventDispatcher, $config) = $this->createWebhooks($client);
 
         $request = new EloquentRequest(['url'=>'http://test.com', 'method'=>'POST', 'body'=>'test', 'attempts'=>1]);
 
         $response = m::mock('Psr\Http\Message\ResponseInterface');
         $response->shouldReceive('getStatusCode')->andReturn(400);
-
-        $exception = new \GuzzleHttp\Exception\RequestException('Could Not Contact Server', m::mock('Psr\Http\Message\RequestInterface'), $response);
-
-        $client->shouldReceive('send')->once()->andThrow($exception);
 
         $requests->shouldReceive('save')->with($request)->andReturn(true);
 
@@ -62,16 +74,16 @@ class RequestServiceTest extends m\Adapter\Phpunit\MockeryTestCase
         $service->fire($request);
     }
 
-    protected function createWebhooks($config=[])
+    protected function createWebhooks($client, $config=[])
     {
         $service = new RequestService(
             $requests           = m::mock('Ignited\Webhooks\Outgoing\Requests\IlluminateRequestRepository'),
-            $client             = m::mock('GuzzleHttp\Client'),
+            $client,
             $dispatcher         = m::mock('Illuminate\Contracts\Bus\Dispatcher'),
             $eventDispatcher    = m::mock('Illuminate\Events\Dispatcher'),
             $config
         );
 
-        return [$service, $requests, $client, $dispatcher, $eventDispatcher, $config];
+        return [$service, $requests, $dispatcher, $eventDispatcher, $config];
     }
 }
