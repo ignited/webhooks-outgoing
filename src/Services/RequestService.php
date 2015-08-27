@@ -5,7 +5,6 @@ use Ignited\Webhooks\Outgoing\Jobs\WebhookJob;
 use Ignited\Webhooks\Outgoing\Requests\RequestInterface;
 use Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface;
 use Illuminate\Contracts\Bus\Dispatcher;
-use Mockery as m;
 
 class RequestService implements RequestServiceInterface
 {
@@ -25,7 +24,7 @@ class RequestService implements RequestServiceInterface
     {
         if($this->requests->save($request))
         {
-            $job = (new WebhookJob($request, $this->config, m::mock('Ignited\Webhooks\Outgoing\Requests\RequestRepositoryInterface'), m::mock('Ignited\Webhooks\Outgoing\Services\RequestService')));
+            $job = (new WebhookJob($request, $this->config));
 
             $this->dispatcher->dispatch($job);
         }
