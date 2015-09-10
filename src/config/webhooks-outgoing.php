@@ -3,7 +3,7 @@
 return [
 
     'requests' => [
-        'model' => env('WEBHOOKS_REQUESTS_MODEL', 'Ignited\Webhooks\Outgoing\Models\Request'),
+        'model' => env('WEBHOOKS_REQUESTS_MODEL', 'Ignited\Webhooks\Outgoing\Requests\EloquentRequest'),
     ],
 
 
