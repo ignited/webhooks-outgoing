@@ -45,7 +45,7 @@ class RequestService implements RequestServiceInterface
         $request->last_attempt_at = $request->freshTimestamp();
 
         try {
-            $httpRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), [], json_encode($request->getBody()));
+            $httpRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), ['Content-Type' => 'application/json'], json_encode($request->getBody()));
 
             $this->eventDispatcher->fire(new WebhookIsSending($request));
 
