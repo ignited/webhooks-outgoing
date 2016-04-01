@@ -11,4 +11,6 @@ interface RequestInterface
     public function getMethod();
 
     public function getBody();
+
+    public function signMessage();
 }

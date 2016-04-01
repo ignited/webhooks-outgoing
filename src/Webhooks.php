@@ -35,6 +35,17 @@ class Webhooks
         return $request;
     }
 
+    public function generateExt($url, $body, $params=[])
+    {
+        if(!isset($params) || !isset($params['method'])){
+            $params['method'] = 'post';
+        }
+
+        $request = $this->requests->create(array_merge(compact(['url', 'body']), $params));
+
+        return $request;
+    }
+
     public function create($data)
     {
         $request = $this->requests->create($data);

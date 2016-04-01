@@ -39,4 +39,7 @@ class EloquentRequest extends Model implements RequestInterface {
         return $this->method;
     }
 
+    public function signMessage() {
+        return false;
+    }
 }

@@ -24,12 +24,6 @@ class LaravelServiceProvider extends WebhooksOutgoingServiceProvider
         ], 'migrations');
     }
 
-    protected function setupConfig()
-    {
-        $this->app->configure('webhooks-outgoing');
-        parent::setupConfig();
-    }
-
     public function register()
     {
         parent::register();
