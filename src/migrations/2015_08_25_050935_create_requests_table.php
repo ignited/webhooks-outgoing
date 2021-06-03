@@ -25,7 +25,7 @@ class CreateRequestsTable extends Migration
             $table->integer('attempts')->default(0);
 
             $table->timestamps();
-            $table->timestamp('last_attempt_at');
+            $table->timestamp('last_attempt_at')->nullable();
         });
     }
 
