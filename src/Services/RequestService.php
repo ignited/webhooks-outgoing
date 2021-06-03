@@ -47,6 +47,10 @@ class RequestService implements RequestServiceInterface
         try {
             $httpRequest = new \GuzzleHttp\Psr7\Request($request->getMethod(), $request->getUrl(), ['Content-Type' => 'application/json'], json_encode($request->getBody()));
 
+            if($request->signMessage()) {
+                $httpRequest = $httpRequest->withHeader('X-Signature', $request->getSignature($httpRequest->getBody()));
+            }
+
             $this->eventDispatcher->fire(new WebhookIsSending($request));
 
             $response = $this->send($httpRequest);
@@ -59,8 +63,23 @@ class RequestService implements RequestServiceInterface
 
             return $response;
         }
+        catch(\GuzzleHttp\Exception\ClientException $e){
+            \Log::info("\GuzzleHttp\Exception\ClientException");
+
+            $this->eventDispatcher->fire(new WebhookEncounteredGuzzleError($request, $e));
+
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+
+                $request->response_code = $response->getStatusCode();
+            }
+
+            $this->requests->save($request);
+        }
         catch(\GuzzleHttp\Exception\RequestException $e)
         {
+            \Log::info("\GuzzleHttp\Exception\RequestException");
+
             $this->eventDispatcher->fire(new WebhookEncounteredGuzzleError($request, $e));
 
             if ($e->hasResponse()) {
@@ -71,7 +90,7 @@ class RequestService implements RequestServiceInterface
 
             $this->requests->save($request);
 
-            throw $e;
+            // throw $e;
         }
     }
 
